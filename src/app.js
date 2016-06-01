@@ -13,13 +13,15 @@ var ajax = require('ajax');
 var idClientValue = 'WEB.SERV.a.chamorro.ruiz@gmail.com',
     passKeyValue = '68B693C0-9F8A-4994-9428-F853E6ACA741',
     urlBase = 'https://openbus.emtmadrid.es/emt-proxy-server/last',
-    urlGetArriveStop = urlBase + '/geo/GetArriveStop.php';
-
+    urlGetArriveStop = urlBase + '/geo/GetArriveStop.php',
+    maincolor = '#0965ae',
+    secondcolor = 'white',
+    statusbarcolor = '#053d6a';
 
 // SPLASH WINDOW
 var splashWindow = new UI.Window({
   status: {
-    backgroundColor:'#0D47A1',
+    backgroundColor:statusbarcolor,
     color: 'white'
   }
 });
@@ -30,10 +32,10 @@ var text = new UI.Text({
   size: Feature.round(new Vector2(180, 200),new Vector2(144, 168)),
   text:'EMT\nMadrid',
   font:'GOTHIC_28_BOLD',
-  color:'white',
+  color: secondcolor,
   textOverflow:'wrap',
   textAlign:'center',
-  backgroundColor: Feature.color('#2196F3','black')
+  backgroundColor: Feature.color(maincolor,'black')
 });
 splashWindow.add(text);
 splashWindow.show();
@@ -58,12 +60,8 @@ var getSavedStops = function(){
 };
 
 var stopDetails = function(event){
-  var stopId = event.item.subtitle;
-  
-  // Creamos la tarjeta para el detalle
-  var detailCard = new UI.Window();
-  
   console.log('Buscando parada ' + stopId);
+  var stopId = event.item.subtitle;
   
   // Invocamos a EMT
   ajax({
@@ -97,21 +95,21 @@ var stopDetails = function(event){
             busTimeLeft = busTimeLeft + ' min';
           }
           arriveItems.push({
-            title: data.arrives[arrive].lineId,
+            title: 'Línea ' + data.arrives[arrive].lineId,
             subtitle: busTimeLeft + ' ' + busDistance
           });
         }
         
         var detailMenu = new UI.Menu({
           status: {
-            backgroundColor: Feature.color('#0D47A1','black'),
-            color: 'white',
+            backgroundColor: Feature.color(statusbarcolor,'black'),
+            color: secondcolor,
             separator: 'none'
           },
-          textColor: Feature.color('white','black'),
-          backgroundColor: Feature.color('#2196F3','white'),
-          highlightBackgroundColor: Feature.color('white', 'black'),
-          highlightTextColor: Feature.color('#2196F3','white'),
+          textColor: Feature.color(secondcolor,'black'),
+          backgroundColor: Feature.color(maincolor,'white'),
+          highlightBackgroundColor: Feature.color(secondcolor, 'black'),
+          highlightTextColor: Feature.color(maincolor,'white'),
           sections: [{
             items: arriveItems,
             title: stopId
@@ -135,14 +133,14 @@ var stopDetails = function(event){
 var menuItems = getSavedStops();
 var mainMenu = new UI.Menu({
   status: {
-    backgroundColor: Feature.color('#0D47A1','black'),
+    backgroundColor: Feature.color(statusbarcolor,'black'),
     color: 'white',
     separator: 'none'
   },
   textColor: Feature.color('white','black'),
-  backgroundColor: Feature.color('#2196F3','white'),
+  backgroundColor: Feature.color(maincolor,'white'),
   highlightBackgroundColor: Feature.color('white', 'black'),
-  highlightTextColor: Feature.color('#2196F3','white'),
+  highlightTextColor: Feature.color(maincolor,'white'),
   sections: [{
     items: menuItems,
     title: 'PARADAS'
@@ -173,6 +171,9 @@ Pebble.addEventListener('ready',function(){
 // Cargamos ventana de configuracion
 Pebble.addEventListener('showConfiguration', function() {
   var url = 'http://ach4m0.github.io/config-pebbleemtmadrid/';
+  if(localStorage.getItem('configData')){
+    url += '?configData=' + encodeURIComponent(localStorage.getItem('configData'));
+  }
   Pebble.openURL(url);
 });
 
