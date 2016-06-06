@@ -60,8 +60,21 @@ var getSavedStops = function(){
 };
 
 var stopDetails = function(event){
-  console.log('Buscando parada ' + stopId);
   var stopId = event.item.subtitle;
+  var stopName = event.item.title;
+  var detailWaitCard = new UI.Card({
+    status: {
+      backgroundColor: statusbarcolor,
+      color: 'white'
+    },
+    backgroundColor: maincolor,
+    title: stopId,
+    titleColor: secondcolor,
+    subtitle: 'Cargando autobuses...',
+    subtitleColor: secondcolor
+  });
+  detailWaitCard.show();
+  console.log('Buscando parada ' + stopId);
   
   // Invocamos a EMT
   ajax({
@@ -112,15 +125,29 @@ var stopDetails = function(event){
           highlightTextColor: Feature.color(maincolor,'white'),
           sections: [{
             items: arriveItems,
-            title: stopId
+            title: stopName + ' - ' + stopId
           }],
         });
         
         detailMenu.show();
+        detailWaitCard.hide();
       }
     },
     function(error){
-      console.log('Ha ocurrido un error, intentalo de nuevo');
+      console.log('Ha ocurrido un error. intentalo de nuevo');
+      var errorCard = new UI.Card({
+        status: {
+          backgroundColor: statusbarcolor,
+          color: 'white'
+        },
+        backgroundColor: maincolor,
+        title: stopId,
+        titleColor: secondcolor,
+        subtitle: 'Ha ocurrido un error. Inténtalo de nuevo.',
+        subtitleColor: secondcolor
+      });
+      errorCard.show();
+      detailWaitCard.hide();
     }
   );
   
