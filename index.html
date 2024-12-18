@@ -1,88 +1,137 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Configuración EMT Madrid</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { font-size: 18px; }
-    label { display: block; margin-top: 10px; }
-    input, button { margin-top: 10px; padding: 10px; width: 100%; }
-    ul { list-style: none; padding: 0; }
-    li { background: #f2f2f2; margin: 5px 0; padding: 10px; display: flex; justify-content: space-between; }
-    button.remove { background: red; color: white; border: none; }
-    .save-btn { background-color: #007bff; color: white; border: none; margin-top: 20px; }
-  </style>
-</head>
-<body>
-  <h1>Configuración EMT Madrid</h1>
-  <label for="linea-input">Añadir línea de autobús:</label>
-  <input type="text" id="linea-input" placeholder="Ejemplo: 34, 55, 122">
-  <button id="add-linea">Añadir línea</button>
-  
-  <h2>Líneas guardadas:</h2>
-  <ul id="lineas-list"></ul>
+<html>
+  <head>
+    <title>EMT Madrid Pebble</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.css" />
+    <script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.js"></script>
+  </head>
+  <body>
+    <div data-role="page" id="main">
+      <div data-role="header" class="jqm-header">
+        <h1>EMT Madrid Pebble</h1>
+      </div>
 
-  <button class="save-btn" id="save">Guardar y salir</button>
-
-  <script>
-    const lineaInput = document.getElementById("linea-input");
-    const addButton = document.getElementById("add-linea");
-    const lineasList = document.getElementById("lineas-list");
-    const saveButton = document.getElementById("save");
-
-    // Cargar líneas guardadas en localStorage
-    let lineas = JSON.parse(localStorage.getItem("lineas")) || [];
-
-    // Función para mostrar las líneas
-    function renderLineas() {
-      lineasList.innerHTML = "";
-      lineas.forEach((linea, index) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-          <span>${linea}</span>
-          <button class="remove" data-index="${index}">Eliminar</button>
-        `;
-        lineasList.appendChild(li);
+      <div data-role="content">
+        <div class="ui-block">
+          <h2>Crear parada</h2>
+          <label for="stopTitle">Nombre parada (por ejemplo Casa):</label>
+          <input type="text" id="stopTitle" required></input>
+          <label for="stopId">N&uacute;mero parada (por ejemplo 1010):</label>
+          <input type="number" id="stopId" required></input>
+          <button type="submit" id="btnNew">Crear</button>
+        </div>
+        <br/>
+        <div class="ui-block">
+          <h2>Listado paradas</h2>
+          <ul data-role="listview" data-inset="true" id="stopLists"></ul>
+          <br/>
+          <div class="ui-block-a"><button type="submit" id="btnCancel">Cancelar</button></div>
+          <div class="ui-block-b"><button type="submit" id="btnSave">Guardar</button></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      $().ready(function() {
+        // Funcion para extraer parametros GET de la url
+        var getQueryParam = function(variable, default_) {
+            var query = location.search.substring(1);
+            var vars = query.split('&');
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split('=');
+                if (pair[0] == variable)
+                    return decodeURIComponent(pair[1]);
+            }
+            return default_ || false;
+        };
+        // Borra un elemento de la lista
+        var deleteItemList = function(e){
+          e.preventDefault();
+          if(confirm("¿Está seguro que desea borrar la parada?")){
+            $(e.currentTarget).parent().remove();
+          }
+        };
+        // Anyade un elemento a la lista
+        var addItemList = function(title, stopId){
+          li = $('<li>');
+          dataLink = $('<a/>',{
+            'data-title': title,
+            'data-stopId': stopId,
+            'class': 'dataItem',
+            'text': title + ' - ' + stopId
+          });
+          deleteLink = $('<a/>',{
+            'href': '#',
+            'class': 'deleteItem',
+            'data-icon': 'delete'
+          });
+          li.append(dataLink);
+          li.append(deleteLink);
+          deleteLink.click(deleteItemList);
+          $('#stopLists').append(li);
+          $('#stopLists').listview( "refresh" );
+        };
+        // Devuelve la lista en un array de objetos
+        var getDataList = function(){
+          items = [];
+          $('#stopLists > li > a.dataItem').each(function(idx, item){
+            items.push({
+              title: $(item).attr('data-title'),
+              stopId: $(item).attr('data-stopId')
+            });
+          });
+          return items;
+        };
+        // Documento listo
+        // Si ya hay un listado guardado o viene por parametro generamos la lista
+        if (typeof window.localStorage !== "undefined") {
+          console.log("Not undefined :)");
+          var configData = [];
+          if (window.localStorage.configpebbleemtmadrid && typeof window.localStorage.configpebbleemtmadrid !== "string") {
+            configData = JSON.parse(window.localStorage.configpebbleemtmadrid);
+          }
+          // Rellenamos el objeto si viene por parametro
+          configData = JSON.parse(decodeURIComponent(getQueryParam('configData','')));
+          if(typeof configData === 'object'){
+            configData.forEach(function(item){
+              addItemList(item.title,item.stopId);
+            });
+          }
+        }
+        // Eventos
+        // Crea nueva parada en la lista
+        $('#btnNew').click(function(){
+          stopTitleForm = $('#stopTitle');
+          stopIdForm = $('#stopId');
+          if(stopTitleForm.val() === '' || stopIdForm.val() === ''){
+            alert('Se necesitan los dos parámetros para crear la parada');
+            return undefined;
+          }
+          addItemList(stopTitleForm.val(),stopIdForm.val());
+          stopTitleForm.val('');
+          stopIdForm.val('');
+        });
+        // Cancela los cambios
+        $("#btnCancel").click(function() {
+          console.log("Cancelando...");
+          var return_to = getQueryParam('return_to', 'pebblejs://close');
+          document.location = return_to;
+        });
+        // Guarda la nueva configuracion y regresa al pebble
+        $("#btnSave").click(function() {
+          console.log("Guardando...");
+          configData = JSON.stringify(getDataList());
+          if (typeof window.localStorage !== "undefined") {
+            window.localStorage.configpebbleemtmadrid = configData;
+          }
+          var return_to = getQueryParam('return_to', 'pebblejs://close#');
+          var location = return_to + encodeURIComponent(configData);
+          console.log("Redirigiendo a " + location);
+          document.location = location;
+        });
       });
-    }
-
-    // Añadir línea nueva
-    addButton.addEventListener("click", () => {
-      const linea = lineaInput.value.trim();
-      if (linea && !lineas.includes(linea)) {
-        lineas.push(linea);
-        localStorage.setItem("lineas", JSON.stringify(lineas));
-        lineaInput.value = "";
-        renderLineas();
-      }
-    });
-
-    // Eliminar línea
-    lineasList.addEventListener("click", (e) => {
-      if (e.target.classList.contains("remove")) {
-        const index = e.target.getAttribute("data-index");
-        lineas.splice(index, 1);
-        localStorage.setItem("lineas", JSON.stringify(lineas));
-        renderLineas();
-      }
-    });
-
-    // Guardar configuración y enviar a Pebble
-    saveButton.addEventListener("click", () => {
-      const configData = JSON.stringify({ lineas });
-      console.log("Enviando configuración:", configData);
-      // Devolver configuración a Pebble
-      if (window.Pebble) {
-        Pebble.sendAppMessage({ config: configData });
-      }
-      // Cerrar la ventana de configuración
-      window.close();
-    });
-
-    // Inicializar la lista
-    renderLineas();
-  </script>
-</body>
+    </script>
+  </body>
 </html>
